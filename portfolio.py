@@ -1,6 +1,3 @@
-TAX_RATE = 0.17
-
-
 class InsufficentMoney(Exception):
     pass
 
@@ -14,15 +11,29 @@ class InstrumentNotFound(Exception):
 
 
 class Portfolio(object):
-    def __init__(self, categories):
+    def __init__(self, categories, tax_rate, months):
         self.categories_ = categories
         self.last_absolute_yield_ = None
         self.last_relative_yield_ = None
         self.cash_ = 0
+        self.tax_rate_ = tax_rate
+        self.months_ = months
+        self.total_tax_paid_ = 0
         self.elasped_months_ = 0
+        self.total_pnl_= 0
+
+    def game_over(self):
+        return self.elasped_months_ == self.months_
 
     def categories(self):
         return self.categories_
+
+    def stats(self):
+        result = ''
+        result += 'Months:{}/{}.\n'.format(self.elasped_months_, self.months_)
+        result += 'Total tax paid:{:.2f}.\n'.format(self.total_tax_paid_)
+        result += 'Total profits and losses:{:.2f}.\n'.format(self.total_pnl_)
+        return result
 
     def nav(self):
         result = self.cash_
@@ -55,11 +66,14 @@ class Portfolio(object):
             return
 
         profit = self.nav() - prev_nav
+        self.total_pnl_ += profit
 
-        self.cash_ -= profit * TAX_RATE
-        if self.cash_ < 0:
-            on_info("The government has given you {:.2f}$ tax relief".format(-self.cash_))
-            self.cash_ = 0
+        if profit > 0:
+            self.total_tax_paid_ += profit * self.tax_rate_
+            self.cash_ -= profit * self.tax_rate_
+            if self.cash_ < 0:
+                on_info("The government has given you {:.2f}$ tax relief".format(-self.cash_))
+                self.cash_ = 0
 
         self.last_absolute_yield_ = self.nav() - prev_nav
         self.last_relative_yield_ = self.last_absolute_yield_ / prev_nav
